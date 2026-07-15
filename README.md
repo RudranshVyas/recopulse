@@ -195,10 +195,17 @@ Session-level binary target `is_converted`, base rate **7.46%**, stratified 75/2
 |---|---|---|---|---|
 | LogisticRegression (baseline) | 0.9565 | 0.5793 | 0.7917 | 0.6690 |
 | **RandomForest (ships)** | **0.9590** | **0.8145** | **0.7806** | **0.7972** |
-| LightGBM (tested, rejected) | 0.9574 | — | — | 0.7784 |
+| LightGBM (tested, rejected) | 0.9576 | 0.7966 | 0.7722 | 0.7842 |
 
-**LightGBM was tested and lost** on both ROC-AUC and F1, so per spec the stack stays
-sklearn-only and LightGBM is not a dependency.
+All three are trained on the same split by `train_conversion.py`, and every row above is
+read back from `models/conversion_metrics.json` (`contenders`) rather than transcribed by
+hand. **LightGBM was tested and lost** on both ROC-AUC and F1, so per the spec the stack
+stays sklearn-only and LightGBM is not a runtime dependency.
+
+To reproduce the LightGBM row, `pip install lightgbm` before training — the script imports
+it inside a `try` and prints a skip line if it is absent, which is what happens during the
+Docker build, since the image deliberately does not install it. The other two rows
+reproduce anywhere.
 
 Confusion matrix (4,829 held-out sessions):
 

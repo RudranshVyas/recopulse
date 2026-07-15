@@ -89,13 +89,24 @@ def main():
 
     print("\n=== FULL FEATURE SET ===")
     results = []
-    for name, model in [
+    # The spec allows LightGBM only if it beats sklearn meaningfully. Test it on the
+    # same split and let the number decide; it is a bench contender, not a dependency.
+    contenders = [
         ("LogisticRegression (baseline)",
          LogisticRegression(max_iter=2000, class_weight="balanced", random_state=42)),
         ("RandomForest",
          RandomForestClassifier(n_estimators=300, min_samples_leaf=5, n_jobs=-1,
                                 class_weight="balanced", random_state=42)),
-    ]:
+    ]
+    try:
+        from lightgbm import LGBMClassifier
+        contenders.append(
+            ("LightGBM", LGBMClassifier(n_estimators=300, learning_rate=0.05,
+                                        class_weight="balanced", random_state=42, verbose=-1)))
+    except ImportError:
+        print("  (lightgbm not installed -- skipping that contender)")
+
+    for name, model in contenders:
         pipe = build(NUMERIC, CATEGORICAL, model)
         pipe.fit(Xtr, ytr)
         m = evaluate(pipe, Xte, yte, name)
@@ -146,6 +157,9 @@ def main():
         "feature_importance": fi[:15],
         "baseline": {k: results[0][k] for k in ("name", "roc_auc", "precision", "recall", "f1")},
         "ablation": {k: abl[k] for k in ("name", "roc_auc", "precision", "recall", "f1")},
+        # Every contender, so the docs quote measured numbers rather than recollection.
+        "contenders": [{k: r[k] for k in ("name", "roc_auc", "precision", "recall", "f1")}
+                       for r in results],
         "numeric_features": NUMERIC, "categorical_features": CATEGORICAL,
     }
     OUT.parent.mkdir(exist_ok=True)
