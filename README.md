@@ -10,7 +10,12 @@ pinned: false
 
 # RecoPulse
 
+### ▸ Live: **[recopulse-736p.onrender.com](https://recopulse-736p.onrender.com)**
+
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/RudranshVyas/recopulse)
+
+> Hosted on Render's free plan, which sleeps after 15 minutes idle. The first request
+> after a quiet spell takes ~30–50s to wake. Everything after that is ~0.3s.
 
 ML-powered e-commerce product intelligence. One FastAPI service serves both a
 server-rendered dashboard (Jinja2 + HTMX + Plotly) and a JSON API over a real
@@ -264,7 +269,8 @@ Or manually: Render dashboard → **New → Blueprint** → select the repo.
 Either way Render reads `render.yaml` (`runtime: docker`, `plan: free`), authorises access
 to the repo, and builds the Dockerfile. The build creates the SQLite DB and trains all
 three models, so the image ships with them baked in. First build takes a few minutes
-(pip install plus training); it lands at `https://recopulse.onrender.com`.
+(pip install plus training). Render appends a suffix if the service name is taken, so the
+URL is `https://<name>-<suffix>.onrender.com` rather than a bare `<name>.onrender.com`.
 
 Render injects `$PORT` and the container reads it — no configuration needed. The health
 check is wired to `/health`.
