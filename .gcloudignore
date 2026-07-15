@@ -7,7 +7,6 @@
 
 .git/
 .gitignore
-.claude/
 
 __pycache__/
 *.py[cod]
