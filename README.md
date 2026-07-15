@@ -10,6 +10,8 @@ pinned: false
 
 # RecoPulse
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/RudranshVyas/recopulse)
+
 ML-powered e-commerce product intelligence. One FastAPI service serves both a
 server-rendered dashboard (Jinja2 + HTMX + Plotly) and a JSON API over a real
 multi-table dataset of **133,305 rows**.
@@ -253,14 +255,16 @@ Image is 949 MB; the container writes nothing at runtime and serves read-only.
 
 ### Primary: Render (free, no credit card)
 
-`render.yaml` is committed, so this is a Blueprint deploy:
+`render.yaml` is committed, so this is a Blueprint deploy. One click:
 
-1. Push this repo to GitHub.
-2. Render dashboard → **New → Blueprint** → select the repo.
-3. Render reads `render.yaml` (`runtime: docker`, `plan: free`) and builds the Dockerfile.
-   The build creates the SQLite DB and trains all three models, so the image ships with
-   them baked in.
-4. Live at `https://recopulse.onrender.com` (or whatever name Render assigns).
+**[→ Deploy this repo to Render](https://dashboard.render.com/blueprint/new?repo=https://github.com/RudranshVyas/recopulse)**
+
+Or manually: Render dashboard → **New → Blueprint** → select the repo.
+
+Either way Render reads `render.yaml` (`runtime: docker`, `plan: free`), authorises access
+to the repo, and builds the Dockerfile. The build creates the SQLite DB and trains all
+three models, so the image ships with them baked in. First build takes a few minutes
+(pip install plus training); it lands at `https://recopulse.onrender.com`.
 
 Render injects `$PORT` and the container reads it — no configuration needed. The health
 check is wired to `/health`.
