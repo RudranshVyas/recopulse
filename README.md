@@ -28,6 +28,8 @@ data; every metric below is measured, not asserted.
 **Read [`data_profile.md`](data_profile.md) first** — it documents the real schema,
 the join graph, and a signal audit that materially changed what got built.
 
+![Store overview](docs/screenshots/overview.png)
+
 ---
 
 ## Quickstart
@@ -70,6 +72,40 @@ names, raw column names, or repo files. Model internals are translated at the ed
 the prediction factors and the importance chart, and chart axes are labelled in prose
 ("share of real buyers caught", not "true positive rate"). The honest limitations still
 appear in full on `/model` — restated in plain language rather than removed.
+
+<details>
+<summary><b>Screenshots — all six pages</b> (click to expand)</summary>
+
+### `/products` — Product performance
+Which products get looked at but not bought.
+
+![Product performance](docs/screenshots/products.png)
+
+### `/recommend` — Product suggestions
+Top-5 recommendations with a plain-English reason per item, and a match bar shown
+relative to the strongest match rather than as a raw model score.
+
+![Product suggestions](docs/screenshots/recommend.png)
+
+### `/conversion` — Purchase predictor
+Live probability as you change the session. Three cart adds → **86%**; drop it to zero
+and the same session falls to **2%**, which is the cart rule the audit found, made
+visible rather than hidden.
+
+![Purchase predictor](docs/screenshots/conversion.png)
+
+### `/segments` — Shopper groups
+Three behavioral clusters, named from their profiles, with the k=2-vs-k=3 reasoning.
+
+![Shopper groups](docs/screenshots/segments.png)
+
+### `/model` — How accurate is it?
+The transparency page: the cart ablation, confusion matrix, ROC curve, feature
+importance, and the k sweep — including the numbers that do not flatter the model.
+
+![Model transparency](docs/screenshots/model.png)
+
+</details>
 
 ## API
 
