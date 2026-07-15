@@ -235,28 +235,78 @@ only for product rating aggregates and segmentation counts — never for convers
 
 ---
 
-## Deploy — Hugging Face Spaces (Docker)
+## Deploy
 
-1. Create a new Space → **SDK: Docker**.
-2. Push this repo to the Space (`git push`), or link the GitHub repo in Space settings.
-3. HF auto-detects the `Dockerfile` and builds. The build runs `load_data.py` and all
-   three training scripts, so the image ships with the DB and pickles baked in.
-4. Live at `https://<user>-recopulse.hf.space`.
+The image is host-agnostic. `CMD` honours an injected `$PORT` and falls back to 7860,
+so the same container runs on Cloud Run, Render, or HF Spaces with no changes.
 
-The YAML frontmatter at the top of this README is what HF reads for `sdk: docker` and
-`app_port: 7860` — keep it first in the file.
+Measured on the built image, under Cloud Run's default limits (`--memory=512Mi`, 1 CPU):
 
-Notes:
-- **Free tier's 16GB RAM covers the full dataset — no sampling anywhere.** The CF
-  similarity matrix is kept sparse; models load once at startup.
-- The container **never trains** — it loads pickles and serves read-only.
-- Spaces **sleep after 48h idle** and wake on the next visit (first request is slow).
+| | |
+|---|---|
+| memory in use, after serving every page | **186 MiB** (36% of a 512Mi cap) |
+| cold start → first healthy response | **~3.5 s** |
+| image size | 949 MB |
+| writes at runtime | none — serves read-only |
 
-Locally:
+### Primary: Google Cloud Run (free, permanent)
+
+Scales to zero, so an idle demo costs nothing, and the free tier **resets monthly and
+does not expire**: 2M requests, 180k vCPU-seconds, 360k GiB-seconds. A portfolio-traffic
+demo uses a rounding error against that.
+
+```bash
+gcloud auth login
+gcloud config set project <your-project-id>
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
+
+gcloud run deploy recopulse \
+  --source . \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --memory 512Mi \
+  --cpu 1 \
+  --max-instances 2 \
+  --cpu-boost
+```
+
+Cloud Build builds the Dockerfile (training included), pushes to Artifact Registry, and
+returns an HTTPS URL: `https://recopulse-<hash>-uc.a.run.app`. No TLS setup, no VM.
+
+- `--max-instances 2` is a deliberate blast-radius cap. A billing account must be
+  attached, so bound the spend rather than trusting the free tier to hold. Add a budget
+  alert at $1 in **Billing → Budgets & alerts**.
+- `--cpu-boost` shortens the cold start; `--min-instances 0` (the default) is what makes
+  it free while idle.
+- Cloud Run injects `PORT=8080`. The container reads it. Do not pass `--port`.
+- `.gcloudignore` keeps `models/` and the built DB out of the upload — they are rebuilt
+  inside the image. `data/raw/*.csv` **is** uploaded; the build needs it.
+
+### Alternative: Render (free, no credit card)
+
+512MB RAM and native Docker, which fits the 186 MiB above. Create a **Web Service** from
+the repo, environment **Docker**; Render injects `$PORT` automatically. Trade-offs: 0.1
+CPU, sleeps after 15 min idle, ~1 min to wake, 750 instance-hours/month.
+
+The only option here that needs no card.
+
+### Hugging Face Spaces — check before relying on it
+
+The YAML frontmatter at the top of this README is retained, so this repo still deploys as
+a Space (`sdk: docker`, `app_port: 7860`) if you have PRO.
+
+**As of July 2026 this may not work on a free account.** Free accounts report being unable
+to select CPU Basic at Space creation, with Docker marked "Paid" and only ZeroGPU offered
+— affecting existing Spaces too. The pricing page still advertises CPU Basic as free, so
+the two contradict each other and HF has not commented. Verify before depending on it;
+PRO is $9/month.
+
+### Locally
 
 ```bash
 docker build -t recopulse .
-docker run -p 7860:7860 recopulse
+docker run -p 7860:7860 recopulse            # http://localhost:7860
+docker run -e PORT=8080 -p 8080:8080 recopulse   # how Cloud Run/Render invoke it
 ```
 
 ---
@@ -283,7 +333,8 @@ scripts/
 data/raw/*.csv       source data (committed)
 models/              pickles + metrics json (built, gitignored)
 data_profile.md      real schema, join graph, signal audit
-Dockerfile
+Dockerfile           builds DB + trains models at image build; honours $PORT
+.gcloudignore        what Cloud Build uploads
 requirements.txt
 ```
 

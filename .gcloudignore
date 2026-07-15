@@ -1,0 +1,26 @@
+# Controls what `gcloud run deploy --source .` uploads to Cloud Build.
+# NOTE: if this file does not exist, gcloud falls back to .gitignore -- which would
+# also work here, but relying on that is fragile. Be explicit.
+#
+# data/raw/*.csv MUST be uploaded: the Dockerfile builds the DB and trains the
+# models from them at image build time.
+
+.git/
+.gitignore
+.claude/
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Built at image build time inside the container, never uploaded.
+data/recopulse.db
+models/
+
+# Docs are not needed to build the image.
+README.md
+data_profile.md
+
+.DS_Store
+.ipynb_checkpoints/
