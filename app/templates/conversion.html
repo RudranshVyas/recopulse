@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Purchase predictor{% endblock %}
+{% block eyebrow %}04 — Purchase predictor{% endblock %}
+{% block heading %}Is this shopper<br>about to buy?{% endblock %}
+{% block lede %}Describe what someone is doing on the site right now and RecoPulse estimates the chance they'll check out. Useful for deciding who to offer help or a discount to, while they're still on the page.{% endblock %}
+
+{% block content %}
+<section class="grid lg:grid-cols-[1fr_420px]">
+  <div class="hair-b hair-r p-6 lg:p-8 rise">
+    <div class="flex items-baseline justify-between mb-6">
+      <h2 class="display text-2xl">Describe the visit</h2>
+      <span class="label">typical visit buys {{ "{:.2f}%".format(base_rate * 100) }} of the time</span>
+    </div>
+
+    <form hx-post="/conversion/predict" hx-target="#result" hx-indicator="#pred-load"
+          hx-trigger="change, submit" class="space-y-6">
+
+      <div>
+        <div class="label mb-3">What they've done this visit</div>
+        <div class="grid sm:grid-cols-3 gap-4">
+          {% for name, lbl, val, mx in [
+            ("n_view","products viewed",3,40), ("n_click","products clicked",1,25),
+            ("n_add_to_cart","added to cart",0,8), ("n_remove_from_cart","removed from cart",0,5),
+            ("n_add_to_wishlist","saved to wishlist",0,10), ("n_products","different products seen",3,20)
+          ] %}
+          <label class="block">
+            <span class="label block mb-1.5 normal-case tracking-wider">{{ lbl }}</span>
+            <input type="number" name="{{ name }}" value="{{ val }}" min="0" max="{{ mx }}"
+                   class="field {% if name == 'n_add_to_cart' %}border-signal{% endif %}">
+          </label>
+          {% endfor %}
+        </div>
+        <p class="label mt-3 leading-relaxed">
+          <span class="text-signal">Adding to cart</span> matters more than everything else
+          combined. Nobody who never added to a cart went on to buy — try it and watch the
+          number on the right move.
+        </p>
+      </div>
+
+      <div class="hair-t pt-5">
+        <div class="label mb-3">How long they stayed</div>
+        <div class="grid sm:grid-cols-4 gap-4">
+          {% for name, lbl, val, mx in [
+            ("mean_dwell_ms","avg time per product (ms)",12000,300000),
+            ("duration_s","visit length (seconds)",300,7200),
+            ("hour","hour of day (0-23)",14,23), ("day_of_week","day (0=Mon, 6=Sun)",2,6)
+          ] %}
+          <label class="block">
+            <span class="label block mb-1.5 normal-case tracking-wider">{{ lbl }}</span>
+            <input type="number" name="{{ name }}" value="{{ val }}" min="0" max="{{ mx }}" class="field">
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="hair-t pt-5">
+        <div class="label mb-3">Who they are</div>
+        <div class="grid sm:grid-cols-3 gap-4">
+          {% for name, lbl in [("device_type","device"), ("referrer_source","how they found us"),
+                               ("loyalty_tier","loyalty tier"), ("income_level","income bracket")] %}
+          <label class="block">
+            <span class="label block mb-1.5 normal-case tracking-wider">{{ lbl }}</span>
+            <select name="{{ name }}" class="field">
+              {% for o in opts[name] %}<option value="{{ o }}">{{ o }}</option>{% endfor %}
+            </select>
+          </label>
+          {% endfor %}
+          {% for name, lbl, val, mx in [("prior_sessions","previous visits",0,50),
+                                        ("tenure_days","days since signing up",180,2000),
+                                        ("age","age",35,90)] %}
+          <label class="block">
+            <span class="label block mb-1.5 normal-case tracking-wider">{{ lbl }}</span>
+            <input type="number" name="{{ name }}" value="{{ val }}" min="0" max="{{ mx }}" class="field">
+          </label>
+          {% endfor %}
+        </div>
+        <p class="label mt-3 leading-relaxed">
+          Changing these barely moves the answer. Phone or laptop, ad or search — it
+          <span class="text-warm">makes almost no difference</span> to whether someone buys.
+          What they <em>do</em> on the site is what counts.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3 hair-t pt-5">
+        <button class="btn" type="submit">Estimate chance</button>
+        <span id="pred-load" class="htmx-indicator label text-signal">working…</span>
+        <span class="label ml-auto">updates as you type</span>
+      </div>
+    </form>
+  </div>
+
+  <div class="hair-b p-6 lg:p-8" id="result"
+       hx-post="/conversion/predict" hx-trigger="load" hx-vals='{"n_view":3,"n_click":1}'>
+    <div class="h-full flex items-center justify-center py-20">
+      <p class="label">working…</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

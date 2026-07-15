@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Store overview{% endblock %}
+{% block eyebrow %}01 — Store overview{% endblock %}
+{% block heading %}How the store<br>is performing{% endblock %}
+{% block lede %}RecoPulse reads a year of shopping activity and answers three questions: what should we recommend to each shopper, who is about to buy, and what kinds of customers do we have?{% endblock %}
+
+{% block content %}
+{% set kpis = [
+  ("Shoppers", "{:,}".format(kpi.total_users), "signed up"),
+  ("Products", "{:,}".format(kpi.total_products), "in the catalog"),
+  ("Store visits", "{:,}".format(kpi.total_sessions), "in the last year"),
+  ("Shopper actions", "{:,}".format(kpi.total_interactions), "views, clicks, cart adds"),
+  ("Items bought", "{:,}".format(kpi.total_purchases), "across all orders"),
+  ("Visits that buy", "{:.2f}%".format(kpi.conversion_rate * 100), "of all store visits"),
+  ("Average order", "${:,.2f}".format(kpi.avg_order_value), "spent per order"),
+  ("Average rating", "{:.2f}".format(kpi.avg_rating), "out of 5 stars"),
+] %}
+
+<section class="grid grid-cols-2 md:grid-cols-4 hair-b">
+  {% for label, value, sub in kpis %}
+  <div class="kpi rise {% if not loop.last %}hair-r{% endif %} {% if loop.index <= 4 %}hair-b md:border-b-0{% endif %}"
+       style="animation-delay: {{ loop.index0 * 45 }}ms">
+    <div class="label">{{ label }}</div>
+    <div class="num mt-2.5 {% if label in ('Visits that buy','Average order') %}text-signal{% endif %}">{{ value }}</div>
+    <div class="mono text-[0.625rem] text-muted mt-1.5">{{ sub }}</div>
+  </div>
+  {% endfor %}
+</section>
+
+<section class="grid lg:grid-cols-2">
+  <div class="hair-b hair-r p-6 lg:p-8 rise" style="animation-delay:200ms">
+    <div class="flex items-baseline justify-between mb-5">
+      <h2 class="display text-2xl">Store visits each month</h2>
+      <span class="label">2023—2026</span>
+    </div>
+    {{ figs.sessions|safe }}
+  </div>
+  <div class="hair-b p-6 lg:p-8 rise" style="animation-delay:250ms">
+    <div class="flex items-baseline justify-between mb-5">
+      <h2 class="display text-2xl">Share of visits that end in a purchase</h2>
+      <span class="label">percent, each month</span>
+    </div>
+    {{ figs.conversion|safe }}
+  </div>
+</section>
+
+<section class="grid lg:grid-cols-[1.45fr_1fr]">
+  <div class="hair-b hair-r p-6 lg:p-8 rise" style="animation-delay:300ms">
+    <div class="flex items-baseline justify-between mb-5">
+      <h2 class="display text-2xl">Money earned by category</h2>
+      <span class="label">total sales, US dollars</span>
+    </div>
+    {{ figs.revenue|safe }}
+  </div>
+  <div class="hair-b p-6 lg:p-8 rise" style="animation-delay:350ms">
+    <div class="flex items-baseline justify-between mb-5">
+      <h2 class="display text-2xl">Where shoppers look</h2>
+      <span class="label">share of all product views</span>
+    </div>
+    {{ figs.mix|safe }}
+  </div>
+</section>
+
+<section class="p-6 lg:p-8 rise" style="animation-delay:400ms">
+  <div class="flex items-baseline justify-between mb-5">
+    <h2 class="display text-2xl">Every category, side by side</h2>
+    <span class="label">{{ cats|length }} categories</span>
+  </div>
+  <div class="overflow-x-auto panel">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Category</th><th class="n">Products</th><th class="n">Views</th>
+          <th class="n">Added to cart</th><th class="n">Bought</th>
+          <th class="n">Views that led to a sale</th><th class="n">Avg price</th>
+          <th class="n">Avg rating</th><th class="n">Money earned</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in cats %}
+        <tr>
+          <td class="font-medium">{{ c.category }}</td>
+          <td class="n text-muted">{{ "{:,}".format(c.products) }}</td>
+          <td class="n">{{ "{:,}".format(c.views) }}</td>
+          <td class="n text-muted">{{ "{:,}".format(c.carts) }}</td>
+          <td class="n">{{ "{:,}".format(c.purchases) }}</td>
+          <td class="n text-signal">{{ "{:.3f}%".format((c.view_to_purchase or 0) * 100) }}</td>
+          <td class="n text-muted">${{ "{:.2f}".format(c.avg_price) }}</td>
+          <td class="n text-muted">{{ "{:.2f}".format(c.avg_rating) if c.avg_rating else "—" }}</td>
+          <td class="n">${{ "{:,.0f}".format(c.revenue) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="label mt-4 leading-relaxed">
+    Average rating counts only products that have been reviewed. The
+    {{ kpi.total_products - kpi.rated_products }} products with no reviews yet are left out
+    rather than counted as zero, which would unfairly drag the average down.
+  </p>
+</section>
+{% endblock %}

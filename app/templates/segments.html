@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Shopper groups{% endblock %}
+{% block eyebrow %}05 — Shopper groups{% endblock %}
+{% block heading %}Three kinds<br>of shopper{% endblock %}
+{% block lede %}Nobody sorted these customers by hand. RecoPulse compared how all 10,000 shoppers behave — what they view, save, buy and review — and the crowd fell into three natural groups.{% endblock %}
+
+{% block content %}
+<section class="grid lg:grid-cols-2">
+  <div class="hair-b hair-r p-6 lg:p-8 rise">
+    <div class="flex items-baseline justify-between mb-5">
+      <h2 class="display text-2xl">How the customers split</h2>
+      <span class="label">share of all shoppers</span>
+    </div>
+    {{ dist|safe }}
+  </div>
+  <div class="hair-b p-6 lg:p-8 rise" style="animation-delay:60ms">
+    <div class="flex items-baseline justify-between mb-1.5">
+      <h2 class="display text-2xl">How the groups differ</h2>
+      <span class="label">further out = more of that behaviour</span>
+    </div>
+    <p class="label mb-3">on each spoke, the busiest group sits at the outer edge and the others are drawn to scale</p>
+    {{ radar|safe }}
+  </div>
+</section>
+
+<section class="hair-b">
+  {% for cid, s in segments %}
+  <div class="p-6 lg:p-8 {% if not loop.last %}hair-b{% endif %} rise"
+       style="animation-delay: {{ loop.index0 * 80 }}ms">
+    <div class="grid lg:grid-cols-[300px_1fr] gap-8">
+      <div>
+        <div class="flex items-baseline gap-3">
+          <span class="display text-5xl text-muted-dim leading-none">{{ "%02d"|format(loop.index) }}</span>
+          <div>
+            <h2 class="display text-3xl leading-none">{{ s.name }}</h2>
+            <div class="label mt-2">group {{ loop.index }} of {{ segments|length }}</div>
+          </div>
+        </div>
+        <p class="text-muted text-[0.8125rem] font-light mt-4 leading-relaxed">{{ s.description }}</p>
+        <div class="flex items-baseline gap-2 mt-5">
+          <span class="num text-3xl text-signal">{{ "{:,}".format(s.size) }}</span>
+          <span class="label">shoppers · {{ "{:.1f}%".format(s.share * 100) }} of everyone</span>
+        </div>
+        <div class="mt-3 h-1 bg-surface border border-edge">
+          <div class="h-full bg-signal" style="width: {{ (s.share * 100)|round(1) }}%"></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-px bg-edge panel self-start">
+        {% for key, label, fmt in [
+          ("n_views","products viewed","{:.1f}"), ("n_clicks","products clicked","{:.1f}"),
+          ("n_cart_adds","added to cart","{:.1f}"), ("n_wishlist_adds","saved to wishlist","{:.1f}"),
+          ("n_purchases","items bought","{:.2f}"), ("avg_order_value","spent per order","${:,.2f}"),
+          ("n_reviews","reviews written","{:.2f}"), ("category_diversity","categories explored","{:.2f}")
+        ] %}
+        <div class="bg-ink p-4">
+          <div class="label leading-tight">{{ label }}</div>
+          <div class="num text-xl mt-2">{{ fmt.format(s.profile[key]) }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</section>
+
+<section class="p-6 lg:p-8 rise">
+  <h2 class="display text-2xl mb-4">Why three groups and not two?</h2>
+  <div class="grid md:grid-cols-2 gap-8 max-w-5xl">
+    <p class="text-muted text-[0.875rem] font-light leading-relaxed">
+      Splitting the customers two ways scores slightly better on paper, but it only tells you
+      "some people shop and some don't" — which nobody needs software to work out. It also
+      hides the quiet majority who sign up and never come back.
+    </p>
+    <p class="text-muted text-[0.875rem] font-light leading-relaxed">
+      Three groups is the next best split, and it's the one you can act on. It separates out
+      the <span class="text-signal">Heavy Browsers</span>: 2,292 people who look at plenty of
+      products and almost never buy. That's the group worth a nudge — and you can't see them
+      at all in a two-way split.
+    </p>
+  </div>
+</section>
+{% endblock %}

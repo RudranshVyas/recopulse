@@ -1,0 +1,20 @@
+{% for r in rows %}
+<tr>
+  <td class="max-w-[18rem]">
+    <div class="truncate">{{ r.product_name }}</div>
+    <span class="microbar mt-1.5" style="width: {{ (r.n_view / top_view * 100)|round(1) }}%"></span>
+  </td>
+  <td class="text-muted text-xs whitespace-nowrap">{{ r.category }}</td>
+  <td class="text-muted text-xs">{{ r.brand }}</td>
+  <td class="n">${{ "{:.2f}".format(r.price) }}</td>
+  <td class="n {% if r.rating_avg and r.rating_avg <= 3 %}text-warm{% else %}text-muted{% endif %}">
+    {{ "{:.1f}".format(r.rating_avg) if r.rating_avg else "—" }}
+  </td>
+  <td class="n">{{ "{:,}".format(r.n_view) }}</td>
+  <td class="n text-muted">{{ r.n_purchases|int }}</td>
+  <td class="n text-signal">{{ "{:.2f}%".format(r.view_to_purchase * 100) if r.view_to_purchase else "—" }}</td>
+  <td class="n">${{ "{:,.0f}".format(r.revenue) }}</td>
+</tr>
+{% else %}
+<tr><td colspan="9" class="label py-8 text-center">No products match that filter.</td></tr>
+{% endfor %}

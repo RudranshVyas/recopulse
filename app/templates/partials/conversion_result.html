@@ -1,0 +1,71 @@
+{% set pct = prob * 100 %}
+{% set lift = prob / base_rate %}
+
+<div class="label">Chance this visit ends in a purchase</div>
+
+<div class="mt-4 flex items-baseline gap-3">
+  <span class="num text-[4.5rem] leading-none
+    {% if prob >= 0.5 %}text-signal{% elif prob >= base_rate %}text-paper{% else %}text-muted{% endif %}">
+    {{ "{:.1f}".format(pct) }}<span class="text-[2rem]">%</span>
+  </span>
+</div>
+
+<!-- probability rail against base rate -->
+<div class="mt-6 relative h-1.5 bg-surface border border-edge">
+  <div class="absolute inset-y-0 left-0 bg-signal transition-all duration-500"
+       style="width: {{ pct|round(1) }}%"></div>
+  <div class="absolute inset-y-0 w-px bg-warm" style="left: {{ (base_rate * 100)|round(2) }}%"></div>
+</div>
+<div class="flex justify-between mt-2">
+  <span class="label">0%</span>
+  <span class="mono text-[0.5625rem] text-warm">typical visit {{ "{:.1f}%".format(base_rate * 100) }}</span>
+  <span class="label">100%</span>
+</div>
+
+<div class="grid grid-cols-2 gap-px bg-edge panel mt-7">
+  <div class="bg-ink p-4">
+    <div class="label">Best guess</div>
+    <div class="num text-2xl mt-1.5 {% if prob >= 0.5 %}text-signal{% endif %}">
+      {{ "will buy" if prob >= 0.5 else "won't buy" }}
+    </div>
+  </div>
+  <div class="bg-ink p-4">
+    <div class="label">Compared to a typical visit</div>
+    <div class="num text-2xl mt-1.5 {% if lift >= 1 %}text-signal{% else %}text-warm{% endif %}">
+      {{ "{:.1f}× more likely".format(lift) if lift >= 1 else "{:.1f}× less likely".format(1 / lift) }}
+    </div>
+  </div>
+</div>
+
+{% if n_add_to_cart == 0 %}
+<p class="text-[0.8125rem] text-muted font-light mt-6 leading-relaxed border-l-2 border-warm pl-4">
+  <span class="text-warm">Nothing in the cart.</span> Out of nearly 11,000 past visits where
+  the shopper never added anything to their cart, not a single one ended in a purchase. Add
+  one cart item on the left and watch this number jump.
+</p>
+{% endif %}
+
+<div class="hair-t mt-7 pt-5">
+  <div class="label mb-4">What's driving this answer</div>
+  <div class="space-y-3">
+    {% set mx = factors[0].importance if factors else 1 %}
+    {% for f in factors %}
+    <div>
+      <div class="flex justify-between items-baseline gap-3">
+        <span class="text-[0.75rem] truncate">{{ f.label }}</span>
+        <span class="mono text-[0.625rem] text-muted shrink-0">
+          this visit: <span class="text-paper">{{ f.value }}</span>
+        </span>
+      </div>
+      <div class="mt-1.5 h-[3px] bg-surface">
+        <div class="h-full bg-signal transition-all duration-500"
+             style="width: {{ (f.importance / mx * 100)|round(1) }}%"></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="label mt-5 leading-relaxed">
+    Longer bar = that detail sways the answer more. The number on the right is what you
+    entered for this visit.
+  </p>
+</div>

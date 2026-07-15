@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Product performance{% endblock %}
+{% block eyebrow %}02 — Product performance{% endblock %}
+{% block heading %}Which products<br>actually sell{% endblock %}
+{% block lede %}Popular is not the same as profitable. These charts find the products shoppers look at constantly but rarely buy — the clearest places to win more sales.{% endblock %}
+
+{% block content %}
+<section class="grid lg:grid-cols-2">
+  <div class="hair-b hair-r p-6 lg:p-8 rise">
+    <div class="flex items-baseline justify-between mb-1.5">
+      <h2 class="display text-2xl">Looked at vs actually bought</h2>
+      <span class="label">12 most-viewed products</span>
+    </div>
+    <p class="label mb-5">purchases are multiplied ×20 so the small bars stay visible next to views</p>
+    {{ figs.viewed_vs_purchased|safe }}
+  </div>
+  <div class="hair-b p-6 lg:p-8 rise" style="animation-delay:60ms">
+    <div class="flex items-baseline justify-between mb-1.5">
+      <h2 class="display text-2xl">How often a view becomes a sale</h2>
+      <span class="label">percent, by category</span>
+    </div>
+    <p class="label mb-5">out of every 100 product views, how many ended in a purchase</p>
+    {{ figs.conv_by_cat|safe }}
+  </div>
+</section>
+
+<section class="hair-b p-6 lg:p-8 rise" style="animation-delay:120ms">
+  <div class="flex items-baseline justify-between mb-1.5">
+    <h2 class="display text-2xl">Attention vs sales, every product</h2>
+    <span class="label">bigger, brighter bubble = more money earned</span>
+  </div>
+  <p class="text-muted text-[0.8125rem] mb-5 font-light max-w-2xl">
+    Each bubble is one product with at least 20 views. Left-to-right is how many people
+    looked at it; bottom-to-top is how often that turned into a sale. Products sitting
+    low on the right get plenty of attention and almost no sales — those are the
+    opportunities.
+  </p>
+  {{ figs.scatter|safe }}
+</section>
+
+<section class="grid lg:grid-cols-2">
+  <div class="hair-b hair-r p-6 lg:p-8 rise" style="animation-delay:180ms">
+    <div class="flex items-baseline justify-between mb-5">
+      <h2 class="display text-2xl">Lots of interest, almost no sales</h2>
+      <span class="chip chip-warm">worth investigating</span>
+    </div>
+    <div class="overflow-x-auto panel">
+      <table class="tbl">
+        <thead><tr><th>Product</th><th>Category</th><th class="n">Views</th>
+          <th class="n">Bought</th><th class="n">Views that sold</th></tr></thead>
+        <tbody>
+          {% for p in leaky %}
+          <tr>
+            <td class="max-w-[15rem] truncate">{{ p.product_name }}</td>
+            <td class="text-muted text-xs">{{ p.category }}</td>
+            <td class="n">{{ "{:,}".format(p.n_view) }}</td>
+            <td class="n text-muted">{{ p.n_purchases|int }}</td>
+            <td class="n text-warm">{{ "{:.3f}%".format(p.view_to_purchase * 100) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="hair-b p-6 lg:p-8 rise" style="animation-delay:240ms">
+    <div class="flex items-baseline justify-between mb-5">
+      <h2 class="display text-2xl">Badly reviewed, still getting seen</h2>
+      <span class="chip chip-warm">hurting the brand</span>
+    </div>
+    <div class="overflow-x-auto panel">
+      <table class="tbl">
+        <thead><tr><th>Product</th><th>Category</th><th class="n">Rating</th>
+          <th class="n">Reviews</th><th class="n">Views</th></tr></thead>
+        <tbody>
+          {% for p in lowrated %}
+          <tr>
+            <td class="max-w-[15rem] truncate">{{ p.product_name }}</td>
+            <td class="text-muted text-xs">{{ p.category }}</td>
+            <td class="n text-warm">{{ "{:.1f}".format(p.rating_avg) }}</td>
+            <td class="n text-muted">{{ p.review_count }}</td>
+            <td class="n">{{ "{:,}".format(p.n_view) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="hair-b p-6 lg:p-8 rise" style="animation-delay:300ms">
+  <div class="flex items-baseline justify-between mb-5">
+    <h2 class="display text-2xl">Money earned by category</h2>
+    <span class="label">total sales, US dollars</span>
+  </div>
+  {{ figs.revenue|safe }}
+</section>
+
+<section class="p-6 lg:p-8 rise" style="animation-delay:360ms">
+  <div class="flex flex-wrap items-end justify-between gap-4 mb-5">
+    <div>
+      <h2 class="display text-2xl">Browse the full catalog</h2>
+      <p class="label mt-1">pick a category to filter · the bar under each name shows how often it's viewed</p>
+    </div>
+    <form class="flex flex-wrap items-end gap-3"
+          hx-get="/products/table" hx-target="#catalog" hx-trigger="change, submit"
+          hx-indicator="#cat-load">
+      <label class="block">
+        <span class="label block mb-1.5">Category</span>
+        <select name="category" class="field w-52">
+          <option value="">All categories</option>
+          {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="block">
+        <span class="label block mb-1.5">Limit</span>
+        <select name="limit" class="field w-24">
+          {% for n in [10, 15, 25, 50] %}
+          <option value="{{ n }}" {% if n == 15 %}selected{% endif %}>{{ n }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <span id="cat-load" class="htmx-indicator label text-signal pb-2.5">loading…</span>
+    </form>
+  </div>
+
+  <div class="overflow-x-auto panel">
+    <table class="tbl">
+      <thead><tr>
+        <th>Product</th><th>Category</th><th>Brand</th><th class="n">Price</th>
+        <th class="n">Rating</th><th class="n">Views</th><th class="n">Bought</th>
+        <th class="n">Views that sold</th><th class="n">Money earned</th>
+      </tr></thead>
+      <tbody id="catalog" hx-get="/products/table?limit=15" hx-trigger="load"></tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
