@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: recopulse
+    runtime: docker
+    plan: free
+    # Closest free region to South Asia. Change to oregon/frankfurt/ohio/virginia to suit.
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    # The image builds the SQLite DB and trains all three models, so the container
+    # only loads pickles and serves read-only. Render injects $PORT; the Dockerfile
+    # CMD reads it.
+    healthCheckPath: /health

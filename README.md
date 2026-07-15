@@ -240,20 +240,60 @@ only for product rating aggregates and segmentation counts — never for convers
 The image is host-agnostic. `CMD` honours an injected `$PORT` and falls back to 7860,
 so the same container runs on Cloud Run, Render, or HF Spaces with no changes.
 
-Measured on the built image, under Cloud Run's default limits (`--memory=512Mi`, 1 CPU):
+Measured on the built image, at each host's free-plan limits:
+
+| | Render free (0.1 CPU) | Cloud Run (1 CPU) |
+|---|---|---|
+| memory in use, after serving every page | **177 MiB** / 512MB | **186 MiB** / 512Mi |
+| cold start → first healthy response | **~26 s** | **~3.5 s** |
+| page latency once warm | 0.14 – 0.40 s | — |
+| OOM under the cap | no | no |
+
+Image is 949 MB; the container writes nothing at runtime and serves read-only.
+
+### Primary: Render (free, no credit card)
+
+`render.yaml` is committed, so this is a Blueprint deploy:
+
+1. Push this repo to GitHub.
+2. Render dashboard → **New → Blueprint** → select the repo.
+3. Render reads `render.yaml` (`runtime: docker`, `plan: free`) and builds the Dockerfile.
+   The build creates the SQLite DB and trains all three models, so the image ships with
+   them baked in.
+4. Live at `https://recopulse.onrender.com` (or whatever name Render assigns).
+
+Render injects `$PORT` and the container reads it — no configuration needed. The health
+check is wired to `/health`.
+
+**Free-plan behaviour, measured — not guessed.** The instance is 512MB / **0.1 CPU**, and
+that CPU limit is the thing that shows. Running the real image at `--cpus=0.1
+--memory=512m`:
 
 | | |
 |---|---|
-| memory in use, after serving every page | **186 MiB** (36% of a 512Mi cap) |
-| cold start → first healthy response | **~3.5 s** |
-| image size | 949 MB |
-| writes at runtime | none — serves read-only |
+| cold start → first healthy response | **~26 s** |
+| memory in use | **177 MiB** of 512MB, no OOM |
+| page latency once warm | **0.14 – 0.40 s** |
 
-### Primary: Google Cloud Run (free, permanent)
+The slow part is one-time Python import and model loading at a tenth of a CPU. Once warm,
+pages are fast, because every dashboard figure is read from a precomputed aggregate table
+rather than computed per request.
 
-Scales to zero, so an idle demo costs nothing, and the free tier **resets monthly and
-does not expire**: 2M requests, 180k vCPU-seconds, 360k GiB-seconds. A portfolio-traffic
-demo uses a rounding error against that.
+Also: free services **sleep after 15 minutes idle**, so the first visitor after a quiet
+spell waits for that cold start plus Render's own spin-up — call it a minute. Budget is
+750 instance-hours/month.
+
+No credit card required.
+
+### Alternative: Google Cloud Run (free, permanent — if billing will set up)
+
+Better than Render on every axis except signup: scales to zero, and the free tier **resets
+monthly and never expires** (2M requests, 180k vCPU-seconds, 360k GiB-seconds). At 1 CPU
+the same image cold-starts in **~3.5 s** rather than 26 s.
+
+The catch is that it **requires an attached billing account**, and that step is not always
+passable — setup can fail with errors like `OR_BACR2_44` even after a successful payment
+method, which is a Google-side verification issue with no fix in this repo.
 
 ```bash
 gcloud auth login
@@ -271,24 +311,16 @@ gcloud run deploy recopulse \
 ```
 
 Cloud Build builds the Dockerfile (training included), pushes to Artifact Registry, and
-returns an HTTPS URL: `https://recopulse-<hash>-uc.a.run.app`. No TLS setup, no VM.
+returns an HTTPS URL. No TLS setup, no VM.
 
-- `--max-instances 2` is a deliberate blast-radius cap. A billing account must be
-  attached, so bound the spend rather than trusting the free tier to hold. Add a budget
-  alert at $1 in **Billing → Budgets & alerts**.
-- `--cpu-boost` shortens the cold start; `--min-instances 0` (the default) is what makes
-  it free while idle.
+- `--max-instances 2` caps the blast radius. Since billing is attached, bound the spend
+  rather than trusting the free tier to hold — add a budget alert at $1 in
+  **Billing → Budgets & alerts**.
+- `--cpu-boost` shortens the cold start; `--min-instances 0` (the default) keeps it free
+  while idle.
 - Cloud Run injects `PORT=8080`. The container reads it. Do not pass `--port`.
 - `.gcloudignore` keeps `models/` and the built DB out of the upload — they are rebuilt
   inside the image. `data/raw/*.csv` **is** uploaded; the build needs it.
-
-### Alternative: Render (free, no credit card)
-
-512MB RAM and native Docker, which fits the 186 MiB above. Create a **Web Service** from
-the repo, environment **Docker**; Render injects `$PORT` automatically. Trade-offs: 0.1
-CPU, sleeps after 15 min idle, ~1 min to wake, 750 instance-hours/month.
-
-The only option here that needs no card.
 
 ### Hugging Face Spaces — check before relying on it
 
@@ -334,6 +366,7 @@ data/raw/*.csv       source data (committed)
 models/              pickles + metrics json (built, gitignored)
 data_profile.md      real schema, join graph, signal audit
 Dockerfile           builds DB + trains models at image build; honours $PORT
+render.yaml          Render Blueprint (free plan, docker runtime)
 .gcloudignore        what Cloud Build uploads
 requirements.txt
 ```
